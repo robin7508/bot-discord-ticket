@@ -3,22 +3,24 @@ import discord
 from discord.ext import commands
 
 # ================= TOKEN =================
-TOKEN = os.getenv("DISCORD_TOKEN")  # Coloque no Railway: DISCORD_TOKEN
+TOKEN = os.getenv("DISCORD_TOKEN")  # Railway
 
 # ================= CONFIGURAÇÕES =================
-CANAL_PAINEL_ID = 1458976664548806737  # Canal do painel
-CATEGORIA_TICKET_ID = 1458975991341781288  # Categoria de tickets
-CARGO_CLIENTE_ID = 1457166675479625799  # Cargo entregue após compra
-CARGO_AUTORIZADO_ID = 1432553894910758925  # Cargo de STAFF autorizado
+CANAL_PAINEL_ID = 1458976664548806737
+CATEGORIA_TICKET_ID = 1458975991341781288
+CARGO_CLIENTE_ID = 1457166675479625799
+CARGO_AUTORIZADO_ID = 1432553894910758925
 
 PRODUTOS = {
     "Netflix Infinita": 20.00,
     "Painel Otimização": 45.00,
-    "Spotify Trimestral": 70.00,
+    "Spotify Trimestral": 10.00,
     "X86 Sem TP": 10.00,
     "IA que Cria Cheat": 5.00,
     "Curso Criação de Cheat": 25.00,
-    "Curso SS": 15.00
+    "Curso SS": 15.00,
+    "Otimização Premium": 35.00,
+    "Otimização Básica": 20.00
 }
 
 # ================= INTENTS =================
@@ -34,7 +36,7 @@ def tem_ticket_aberto(guild, user):
     if not categoria:
         return None
     for canal in categoria.text_channels:
-        if canal.name == f"ticket-{user.id}":
+        if canal.name.startswith(f"ticket-{user.name}"):
             return canal
     return None
 
@@ -110,8 +112,11 @@ class ProdutoSelect(discord.ui.Select):
         preco = PRODUTOS[produto]
         categoria = guild.get_channel(CATEGORIA_TICKET_ID)
 
+        # Nome do canal com username + discriminator (único e legível)
+        canal_nome = f"ticket-{user.name}-{user.discriminator}".lower()
+
         canal = await guild.create_text_channel(
-            name=f"ticket-{user.id}",
+            name=canal_nome,
             category=categoria,
             overwrites={
                 guild.default_role: discord.PermissionOverwrite(view_channel=False),
