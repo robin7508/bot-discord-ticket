@@ -6,10 +6,10 @@ from discord.ext import commands
 TOKEN = os.getenv("DISCORD_TOKEN")  # TOKEN seguro via Railway
 
 # ================= CONFIGURAÇÕES =================
-CANAL_PAINEL_ID = 1458976664548806737  # Canal do painel
-CATEGORIA_TICKET_ID = 1458975991341781288  # Categoria dos tickets
-CARGO_CLIENTE_ID = 1457166675479625799  # Cargo que será dado após compra
-CARGO_AUTORIZADO_ID = 1432553894910758925  # Cargo de staff autorizado
+CANAL_PAINEL_ID = 1458976664548806737
+CATEGORIA_TICKET_ID = 1458975991341781288
+CARGO_CLIENTE_ID = 1457166675479625799
+CARGO_AUTORIZADO_ID = 1432553894910758925
 
 PRODUTOS = {
     "Netflix Infinita": 20.00,
@@ -33,7 +33,6 @@ def tem_ticket_aberto(guild, user):
     categoria = guild.get_channel(CATEGORIA_TICKET_ID)
     if not categoria:
         return None
-
     for canal in categoria.text_channels:
         if canal.name == f"ticket-{user.id}":
             return canal
@@ -57,7 +56,6 @@ class ProdutoSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
-
         guild = interaction.guild
         user = interaction.user
 
@@ -85,7 +83,6 @@ class ProdutoSelect(discord.ui.Select):
             }
         )
 
-        # Mensagem do ticket
         embed = discord.Embed(
             title="🎫 Ticket de Compra",
             description=(
@@ -98,7 +95,6 @@ class ProdutoSelect(discord.ui.Select):
         )
 
         await canal.send(embed=embed, view=TicketView())
-
         await interaction.followup.send(
             f"✅ Ticket criado: {canal.mention}",
             ephemeral=True
@@ -153,7 +149,6 @@ class TicketView(discord.ui.View):
 async def on_ready():
     print(f"✅ Bot online como {bot.user}")
 
-    # Envia o painel automaticamente no canal
     canal = bot.get_channel(CANAL_PAINEL_ID)
     if not canal:
         print("❌ Canal do painel não encontrado")
@@ -169,6 +164,6 @@ async def on_ready():
 
 # ================= START =================
 if TOKEN is None:
-    print("❌ ERRO: DISCORD_TOKEN não configurado no Railway")
+    print("❌ ERRO: DISCORD_TOKEN não configurado")
 else:
     bot.run(TOKEN)
