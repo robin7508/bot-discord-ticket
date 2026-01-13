@@ -2,14 +2,14 @@ import os
 import discord
 from discord.ext import commands
 
-# ================= TOKEN (Railway) =================
-TOKEN = os.getenv("DISCORD_TOKEN")
+# ================= TOKEN =================
+TOKEN = os.getenv("DISCORD_TOKEN")  # TOKEN seguro via Railway
 
-# ================= CONFIG =================
-CANAL_PAINEL_ID = 1458976664548806737
-CATEGORIA_TICKET_ID = 1458975991341781288
-CARGO_CLIENTE_ID = 1457166675479625799
-CARGO_AUTORIZADO_ID = 1432553894910758925
+# ================= CONFIGURAÇÕES =================
+CANAL_PAINEL_ID = 1458976664548806737  # Canal do painel
+CATEGORIA_TICKET_ID = 1458975991341781288  # Categoria dos tickets
+CARGO_CLIENTE_ID = 1457166675479625799  # Cargo que será dado após compra
+CARGO_AUTORIZADO_ID = 1432553894910758925  # Cargo de staff autorizado
 
 PRODUTOS = {
     "Netflix Infinita": 20.00,
@@ -28,8 +28,7 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# ================= UTIL =================
-
+# ================= FUNÇÕES AUXILIARES =================
 def tem_ticket_aberto(guild, user):
     categoria = guild.get_channel(CATEGORIA_TICKET_ID)
     if not categoria:
@@ -43,8 +42,7 @@ def tem_ticket_aberto(guild, user):
 def tem_cargo_autorizado(member):
     return any(role.id == CARGO_AUTORIZADO_ID for role in member.roles)
 
-# ================= SELECT =================
-
+# ================= SELECT DE PRODUTOS =================
 class ProdutoSelect(discord.ui.Select):
     def __init__(self):
         options = [
@@ -55,11 +53,7 @@ class ProdutoSelect(discord.ui.Select):
             )
             for nome, preco in PRODUTOS.items()
         ]
-
-        super().__init__(
-            placeholder="Selecione um produto...",
-            options=options
-        )
+        super().__init__(placeholder="Selecione um produto...", options=options)
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
@@ -67,6 +61,7 @@ class ProdutoSelect(discord.ui.Select):
         guild = interaction.guild
         user = interaction.user
 
+        # Verifica se já tem ticket
         ticket = tem_ticket_aberto(guild, user)
         if ticket:
             await interaction.followup.send(
@@ -79,6 +74,7 @@ class ProdutoSelect(discord.ui.Select):
         preco = PRODUTOS[produto]
         categoria = guild.get_channel(CATEGORIA_TICKET_ID)
 
+        # Cria canal do ticket
         canal = await guild.create_text_channel(
             name=f"ticket-{user.id}",
             category=categoria,
@@ -89,6 +85,7 @@ class ProdutoSelect(discord.ui.Select):
             }
         )
 
+        # Mensagem do ticket
         embed = discord.Embed(
             title="🎫 Ticket de Compra",
             description=(
@@ -107,15 +104,13 @@ class ProdutoSelect(discord.ui.Select):
             ephemeral=True
         )
 
-# ================= VIEW PAINEL =================
-
+# ================= VIEW DO PAINEL =================
 class PainelView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
         self.add_item(ProdutoSelect())
 
-# ================= BOTÕES TICKET =================
-
+# ================= VIEW DO TICKET =================
 class TicketView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -153,15 +148,12 @@ class TicketView(discord.ui.View):
         )
         await interaction.channel.delete()
 
-# ================= READY =================
-
+# ================= ON READY =================
 @bot.event
 async def on_ready():
     print(f"✅ Bot online como {bot.user}")
 
-    bot.add_view(PainelView())
-    bot.add_view(TicketView())
-
+    # Envia o painel automaticamente no canal
     canal = bot.get_channel(CANAL_PAINEL_ID)
     if not canal:
         print("❌ Canal do painel não encontrado")
@@ -176,7 +168,6 @@ async def on_ready():
     await canal.send(embed=embed, view=PainelView())
 
 # ================= START =================
-
 if TOKEN is None:
     print("❌ ERRO: DISCORD_TOKEN não configurado no Railway")
 else:
