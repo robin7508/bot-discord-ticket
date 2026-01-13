@@ -1,8 +1,11 @@
+import os
 import discord
 from discord.ext import commands
 
-TOKEN = "DISCORD_TOKEN"
+# ================= TOKEN (Railway) =================
+TOKEN = os.getenv("DISCORD_TOKEN")
 
+# ================= CONFIG =================
 CANAL_PAINEL_ID = 1458976664548806737
 CATEGORIA_TICKET_ID = 1458975991341781288
 CARGO_CLIENTE_ID = 1457166675479625799
@@ -18,37 +21,43 @@ PRODUTOS = {
     "Curso SS": 15.00
 }
 
+# ================= INTENTS =================
 intents = discord.Intents.default()
 intents.members = True
+intents.message_content = True
+
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# ---------------- UTIL ---------------- #
+# ================= UTIL =================
 
 def tem_ticket_aberto(guild, user):
     categoria = guild.get_channel(CATEGORIA_TICKET_ID)
+    if not categoria:
+        return None
+
     for canal in categoria.text_channels:
-        if canal.name == f"ticket-{user.name}":
+        if canal.name == f"ticket-{user.id}":
             return canal
     return None
 
 def tem_cargo_autorizado(member):
     return any(role.id == CARGO_AUTORIZADO_ID for role in member.roles)
 
-# ---------------- SELECT ---------------- #
+# ================= SELECT =================
 
 class ProdutoSelect(discord.ui.Select):
     def __init__(self):
         options = [
             discord.SelectOption(
                 label=nome,
-                description="Clique aqui para abrir",
-                emoji="⚡"
+                description=f"R$ {preco:.2f}",
+                emoji="🛒"
             )
-            for nome in PRODUTOS
+            for nome, preco in PRODUTOS.items()
         ]
 
         super().__init__(
-            placeholder="Selecione uma opção...",
+            placeholder="Selecione um produto...",
             options=options
         )
 
@@ -71,22 +80,22 @@ class ProdutoSelect(discord.ui.Select):
         categoria = guild.get_channel(CATEGORIA_TICKET_ID)
 
         canal = await guild.create_text_channel(
-            name=f"ticket-{user.name}",
+            name=f"ticket-{user.id}",
             category=categoria,
             overwrites={
                 guild.default_role: discord.PermissionOverwrite(view_channel=False),
-                user: discord.PermissionOverwrite(view_channel=True),
+                user: discord.PermissionOverwrite(view_channel=True, send_messages=True),
                 guild.me: discord.PermissionOverwrite(view_channel=True)
             }
         )
 
         embed = discord.Embed(
+            title="🎫 Ticket de Compra",
             description=(
-                f"🔔 **Olá {user.mention}! Seja bem-vindo(a) ao seu ticket.**\n\n"
-                f"⚡ Os **TICKETS** são totalmente privados, apenas membros da **STAFF** possuem acesso.\n"
-                f"🚫 Evite **MARCAÇÕES**. Aguarde até que um **STAFF** atenda.\n\n"
-                f"📦 **Produto escolhido:** `{produto}`\n"
-                f"💰 **Valor:** `R${preco:.2f}`"
+                f"👤 **Cliente:** {user.mention}\n"
+                f"📦 **Produto:** `{produto}`\n"
+                f"💰 **Valor:** `R$ {preco:.2f}`\n\n"
+                f"⏳ Aguarde um **STAFF** para confirmar."
             ),
             color=discord.Color.orange()
         )
@@ -98,14 +107,14 @@ class ProdutoSelect(discord.ui.Select):
             ephemeral=True
         )
 
-# ---------------- VIEW PAINEL ---------------- #
+# ================= VIEW PAINEL =================
 
 class PainelView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
         self.add_item(ProdutoSelect())
 
-# ---------------- BOTÕES TICKET ---------------- #
+# ================= BOTÕES TICKET =================
 
 class TicketView(discord.ui.View):
     def __init__(self):
@@ -115,7 +124,7 @@ class TicketView(discord.ui.View):
     async def confirmar(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not tem_cargo_autorizado(interaction.user):
             await interaction.response.send_message(
-                "❌ Você não tem permissão para confirmar compras.",
+                "❌ Apenas a STAFF pode confirmar compras.",
                 ephemeral=True
             )
             return
@@ -125,7 +134,7 @@ class TicketView(discord.ui.View):
             await interaction.user.add_roles(cargo)
 
         await interaction.response.send_message(
-            "🎉 Compra confirmada com sucesso!",
+            "🎉 Compra confirmada! Cargo entregue.",
             ephemeral=True
         )
 
@@ -133,7 +142,7 @@ class TicketView(discord.ui.View):
     async def finalizar(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not tem_cargo_autorizado(interaction.user):
             await interaction.response.send_message(
-                "❌ Você não tem permissão para finalizar tickets.",
+                "❌ Apenas a STAFF pode finalizar tickets.",
                 ephemeral=True
             )
             return
@@ -144,13 +153,20 @@ class TicketView(discord.ui.View):
         )
         await interaction.channel.delete()
 
-# ---------------- READY ---------------- #
+# ================= READY =================
 
 @bot.event
 async def on_ready():
     print(f"✅ Bot online como {bot.user}")
 
+    bot.add_view(PainelView())
+    bot.add_view(TicketView())
+
     canal = bot.get_channel(CANAL_PAINEL_ID)
+    if not canal:
+        print("❌ Canal do painel não encontrado")
+        return
+
     embed = discord.Embed(
         title="⚡ PAINEL DE COMPRAS",
         description="Selecione um produto abaixo para abrir seu ticket",
@@ -159,4 +175,9 @@ async def on_ready():
 
     await canal.send(embed=embed, view=PainelView())
 
-bot.run(TOKEN)
+# ================= START =================
+
+if TOKEN is None:
+    print("❌ ERRO: DISCORD_TOKEN não configurado no Railway")
+else:
+    bot.run(TOKEN)
