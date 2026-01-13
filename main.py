@@ -120,9 +120,11 @@ class ProdutoSelect(discord.ui.Select):
             }
         )
 
+        # ================= EMBED COM MENÇÃO =================
         embed = discord.Embed(
-            title=f"🔔 | Olá {user.mention}! Seja bem-vindo(a) ao seu ticket.",
+            title="🔔 | Novo Ticket",
             description=(
+                f"Olá {user.mention}! Seja bem-vindo(a) ao seu ticket.\n\n"
                 f":zap: | Os **TICKETS** são totalmente privados, apenas membros da **STAFF** possuem acesso a este canal.\n"
                 f":rotating_light: | Evite **MARCAÇÕES**. Aguarde até que um **STAFF** te atenda.\n"
                 f":man_police_officer: | Staff que assumiu o ticket: **Ninguém Assumiu**\n\n"
