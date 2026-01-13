@@ -3,7 +3,7 @@ import discord
 from discord.ext import commands
 
 # ================= TOKEN =================
-TOKEN = os.getenv("DISCORD_TOKEN")  # TOKEN seguro via Railway
+TOKEN = os.getenv("DISCORD_TOKEN")  # Coloque a variável no Railway
 
 # ================= CONFIGURAÇÕES =================
 CANAL_PAINEL_ID = 1458976664548806737
@@ -40,71 +40,6 @@ def tem_ticket_aberto(guild, user):
 
 def tem_cargo_autorizado(member):
     return any(role.id == CARGO_AUTORIZADO_ID for role in member.roles)
-
-# ================= SELECT DE PRODUTOS =================
-class ProdutoSelect(discord.ui.Select):
-    def __init__(self):
-        options = [
-            discord.SelectOption(
-                label=nome,
-                description=f"R$ {preco:.2f}",
-                emoji="🛒"
-            )
-            for nome, preco in PRODUTOS.items()
-        ]
-        super().__init__(placeholder="Selecione um produto...", options=options)
-
-    async def callback(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
-        guild = interaction.guild
-        user = interaction.user
-
-        # Verifica se já tem ticket
-        ticket = tem_ticket_aberto(guild, user)
-        if ticket:
-            await interaction.followup.send(
-                f"❌ Você já tem um ticket aberto: {ticket.mention}",
-                ephemeral=True
-            )
-            return
-
-        produto = self.values[0]
-        preco = PRODUTOS[produto]
-        categoria = guild.get_channel(CATEGORIA_TICKET_ID)
-
-        # Cria canal do ticket
-        canal = await guild.create_text_channel(
-            name=f"ticket-{user.id}",
-            category=categoria,
-            overwrites={
-                guild.default_role: discord.PermissionOverwrite(view_channel=False),
-                user: discord.PermissionOverwrite(view_channel=True, send_messages=True),
-                guild.me: discord.PermissionOverwrite(view_channel=True)
-            }
-        )
-
-        embed = discord.Embed(
-            title="🎫 Ticket de Compra",
-            description=(
-                f"👤 **Cliente:** {user.mention}\n"
-                f"📦 **Produto:** `{produto}`\n"
-                f"💰 **Valor:** `R$ {preco:.2f}`\n\n"
-                f"⏳ Aguarde um **STAFF** para confirmar."
-            ),
-            color=discord.Color.orange()
-        )
-
-        await canal.send(embed=embed, view=TicketView())
-        await interaction.followup.send(
-            f"✅ Ticket criado: {canal.mention}",
-            ephemeral=True
-        )
-
-# ================= VIEW DO PAINEL =================
-class PainelView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-        self.add_item(ProdutoSelect())
 
 # ================= VIEW DO TICKET =================
 class TicketView(discord.ui.View):
@@ -143,6 +78,72 @@ class TicketView(discord.ui.View):
             ephemeral=True
         )
         await interaction.channel.delete()
+
+# ================= SELECT DE PRODUTOS =================
+class ProdutoSelect(discord.ui.Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(
+                label=nome,
+                description=f"R$ {preco:.2f}",
+                emoji="🛒"
+            )
+            for nome, preco in PRODUTOS.items()
+        ]
+        super().__init__(placeholder="Selecione um produto...", options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+
+        guild = interaction.guild
+        user = interaction.user
+
+        ticket = tem_ticket_aberto(guild, user)
+        if ticket:
+            await interaction.followup.send(
+                f"❌ Você já tem um ticket aberto: {ticket.mention}",
+                ephemeral=True
+            )
+            return
+
+        produto = self.values[0]
+        preco = PRODUTOS[produto]
+        categoria = guild.get_channel(CATEGORIA_TICKET_ID)
+
+        canal = await guild.create_text_channel(
+            name=f"ticket-{user.id}",
+            category=categoria,
+            overwrites={
+                guild.default_role: discord.PermissionOverwrite(view_channel=False),
+                user: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+                guild.me: discord.PermissionOverwrite(view_channel=True)
+            }
+        )
+
+        embed = discord.Embed(
+            title=f"🔔 | Olá {user.display_name}! Seja bem-vindo(a) ao seu ticket.",
+            description=(
+                f":zap: | Os **TICKETS** são totalmente privados, apenas membros da **STAFF** possuem acesso a este canal.\n"
+                f":rotating_light: | Evite **MARCAÇÕES**. Aguarde até que um **STAFF** te atenda.\n"
+                f":man_police_officer: | Staff que assumiu o ticket: **Ninguém Assumiu**\n\n"
+                f"📦 **Produto escolhido:** `{produto}`\n"
+                f"💰 **Valor:** `R$ {preco:.2f}`"
+            ),
+            color=discord.Color.orange()
+        )
+
+        await canal.send(embed=embed, view=TicketView())
+
+        await interaction.followup.send(
+            f"✅ Ticket criado: {canal.mention}",
+            ephemeral=True
+        )
+
+# ================= VIEW DO PAINEL =================
+class PainelView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(ProdutoSelect())
 
 # ================= ON READY =================
 @bot.event
