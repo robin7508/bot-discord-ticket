@@ -3,13 +3,13 @@ import discord
 from discord.ext import commands
 
 # ================= TOKEN =================
-TOKEN = os.getenv("DISCORD_TOKEN")  # Coloque a variável no Railway
+TOKEN = os.getenv("DISCORD_TOKEN")  # Coloque no Railway: DISCORD_TOKEN
 
 # ================= CONFIGURAÇÕES =================
-CANAL_PAINEL_ID = 1458976664548806737
-CATEGORIA_TICKET_ID = 1458975991341781288
-CARGO_CLIENTE_ID = 1457166675479625799
-CARGO_AUTORIZADO_ID = 1432553894910758925
+CANAL_PAINEL_ID = 1458976664548806737  # Canal do painel
+CATEGORIA_TICKET_ID = 1458975991341781288  # Categoria de tickets
+CARGO_CLIENTE_ID = 1457166675479625799  # Cargo entregue após compra
+CARGO_AUTORIZADO_ID = 1432553894910758925  # Cargo de STAFF autorizado
 
 PRODUTOS = {
     "Netflix Infinita": 20.00,
@@ -121,7 +121,7 @@ class ProdutoSelect(discord.ui.Select):
         )
 
         embed = discord.Embed(
-            title=f"🔔 | Olá {user.display_name}! Seja bem-vindo(a) ao seu ticket.",
+            title=f"🔔 | Olá {user.mention}! Seja bem-vindo(a) ao seu ticket.",
             description=(
                 f":zap: | Os **TICKETS** são totalmente privados, apenas membros da **STAFF** possuem acesso a este canal.\n"
                 f":rotating_light: | Evite **MARCAÇÕES**. Aguarde até que um **STAFF** te atenda.\n"
@@ -133,7 +133,6 @@ class ProdutoSelect(discord.ui.Select):
         )
 
         await canal.send(embed=embed, view=TicketView())
-
         await interaction.followup.send(
             f"✅ Ticket criado: {canal.mention}",
             ephemeral=True
