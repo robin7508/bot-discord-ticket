@@ -3,7 +3,7 @@ import discord
 from discord.ext import commands
 
 # ================= TOKEN =================
-TOKEN = os.getenv("DISCORD_TOKEN")  # Coloque no Railway: DISCORD_TOKEN
+TOKEN = os.getenv("DISCORD_TOKEN")  # Railway
 
 # ================= CONFIGURAÇÕES =================
 CANAL_PAINEL_ID = 1458976664548806737
@@ -127,5 +127,60 @@ class ProdutoSelect(discord.ui.Select):
             }
         )
 
-        # ================= EMBED COM MENÇÃO =================
-        embed = d
+        embed = discord.Embed(
+            title="🔔 | Novo Ticket",
+            description=(
+                f"Olá {user.mention}! Seja bem-vindo(a) ao seu ticket.\n\n"
+                f":zap: | Os **TICKETS** são totalmente privados, apenas membros da **STAFF** possuem acesso a este canal.\n"
+                f":rotating_light: | Evite **MARCAÇÕES**. Aguarde até que um **STAFF** te atenda.\n"
+                f":man_police_officer: | Staff que assumiu o ticket: **Ninguém Assumiu**\n\n"
+                f"📦 **Produto escolhido:** `{produto}`\n"
+                f"💰 **Valor:** `R$ {preco:.2f}`"
+            ),
+            color=discord.Color.orange()
+        )
+
+        await canal.send(embed=embed, view=TicketView())
+        await interaction.followup.send(
+            f"✅ Ticket criado: {canal.mention}",
+            ephemeral=True
+        )
+
+# ================= VIEW DO PAINEL =================
+class PainelView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(ProdutoSelect())
+
+# ================= FUNÇÃO PARA ENVIAR PAINEL =================
+async def enviar_painel():
+    await bot.wait_until_ready()
+    canal = bot.get_channel(CANAL_PAINEL_ID)
+    if not canal:
+        print("❌ Canal do painel não encontrado")
+        return
+
+    # Evitar duplicar o painel
+    async for msg in canal.history(limit=50):
+        if msg.author == bot.user and msg.embeds:
+            # Encontrou painel já existente
+            return
+
+    embed = discord.Embed(
+        title="⚡ PAINEL DE COMPRAS",
+        description="Selecione um produto abaixo para abrir seu ticket",
+        color=discord.Color.blurple()
+    )
+    await canal.send(embed=embed, view=PainelView())
+
+# ================= ON READY =================
+@bot.event
+async def on_ready():
+    print(f"✅ Bot online como {bot.user}")
+    await enviar_painel()
+
+# ================= START =================
+if TOKEN is None:
+    print("❌ ERRO: DISCORD_TOKEN não configurado")
+else:
+    bot.run(TOKEN)
